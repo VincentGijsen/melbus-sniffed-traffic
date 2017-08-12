@@ -30,7 +30,7 @@ in logic, add the **SPI-decoder** with the following settings:
 
 details:
 
-the capture file **test-aa-bb-cc-track.logicdata** contains the melbus-traffic from playing a file, with aaaaaaaaaa's and bbbbbbbbb's in the meta-data (to ease disovery)
+the capture file **test-aa-bb-cc-track.logicdata** contains the melbus-traffic from playing a file, with **aaaaaaaaaa**'s and **bbbbbbbbb**'s in the meta-data (to ease disovery)
 
 
 the ascii/hex decoded parts (of interest) seem:
