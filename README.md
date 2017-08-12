@@ -1,4 +1,4 @@
-Author: Vincent Gijsen
+Author: Vincent Gijsen (http://www.vincentgijsen.nl)
 
 # melbus-sniffed-traffic
 This repo contains captures from text-on-melbus for volvo
