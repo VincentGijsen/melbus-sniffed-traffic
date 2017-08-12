@@ -7,7 +7,7 @@ Desperate to find any information regarding sending text to HU in (old) volvo ca
 
 i'm not trying to pirate anybodies business, just for personal use, be able to send kodi-data to the display of my HU, so I can also control my car-pc when driving faster then a few km/h.
 
-the captures are made with Saleae logic's awesome Logic.
+the captures are made with Saleae logic's awesome Logic, on HU850, in SAT mode (hense the sat id's, see: http://volvo.wot.lv/wiki/doku.php?id=melbus for more details
 
 **Please share any information regarding your descoveries on this subject** as I have with you, for the sake of opensoftware! and your own melbus-application. Please share any info you have or deduce from the captures back here!
 
