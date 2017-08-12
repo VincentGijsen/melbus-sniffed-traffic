@@ -32,7 +32,7 @@ details:
 
 the capture file **test-aa-bb-cc-track.logicdata** contains the melbus-traffic from playing a file, with **aaaaaaaaaa**'s and **bbbbbbbbb**'s in the meta-data (to ease disovery)
 
-
+note I was pressing the *RND* button to switch between text
 the ascii/hex decoded parts (of interest) seem:
 
 ```csv
