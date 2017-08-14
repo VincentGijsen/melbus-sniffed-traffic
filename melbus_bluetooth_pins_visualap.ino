@@ -5,9 +5,10 @@
 
 
   By Thomas Landahl, 2017-04-25
+  27-aug-2017 Modified by Vincent Gijsen, to incorporate text-sending to display
 
 */
-
+//#define MELBUS_CLOCK_INTERRUPT 1
 #define MELBUS_CLOCKBIT (byte)3 //Pin D2  - CLK
 #define MELBUS_DATA (byte)2     //Pin D3  - Data
 #define MELBUS_BUSY (byte)4     //Pin D4  - Busy
@@ -421,11 +422,11 @@ void loop() {
                     interrupts();
                   }
                   break;
-                  Serial.println("->11 ");
+                  Serial.println("->10 ");
                 }
-            }
+            
 
-            break
+            break;
 
             /*
               track++;
@@ -942,5 +943,4 @@ void hangup() {
 }
 
 //Happy listening, hacker!
-
 
