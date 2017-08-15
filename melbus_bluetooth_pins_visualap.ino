@@ -7,6 +7,7 @@
   By Thomas Landahl, 2017-04-25
   27-aug-2017 Modified by Vincent Gijsen, to incorporate text-sending to display
 
+
 */
 //#define MELBUS_CLOCK_INTERRUPT 1
 #define MELBUS_CLOCKBIT (byte)3 //Pin D2  - CLK
@@ -103,14 +104,14 @@ const byte c3init2[] = {
   0xff, 0xff
 };
 
-
+const byte case12Threebyte[] = {0x00, 0x01, 0x08};
 
 
 //This list can't be too long. We only have so much time between the received bytes. (approx 500 us)
-const byte commands[][6] = {
+const byte commands[][8] = {
   {0xC1, 0x1D, 0x73, 0x01, 0x81,  0x10}, // 0
   {0xC3, 0x1F, 0x7C, 0x00}, // 1 initdata(1)
-  {0x00, 0x1C, 0xEC }, // 2 now we are master and can stufs (like text) to the display!
+  {0x00, 0x1E, 0xEC }, // 2 now we are master and can stufs (like text) to the display!
   {0x07, 0x1A, 0xEE}, // 3 main init
   {0x00, 0x00, 0x1C, 0xED}, // 4 sec init
   {0xC1, 0x1B, 0x7F, 0x01, 0x08},  // 5 C1 1B 7F 1 8 FF FF FF FF FF FF FF FF FF
@@ -120,7 +121,8 @@ const byte commands[][6] = {
   {0xC3, 0x1F, 0x7C, 0x2}, // 8 c3init2 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
   {0xC0, 0x1C, 0x70, 0x00, 0x80, 0x01 }, //9 C0 1C 70 0 80 1 FF (we insert 0x90)
   {0xC0, 0x1C, 0x70, 0x02, 0x80, 0x01 }, //10 C0 1C 70 0 80 1 FF (we respond 0x10)
-  {0xC0, 0x1B, 0x76} //follows 0, 92, ff, OR 1,3 ff, OR 2, 5 FF
+  {0xC0, 0x1B, 0x76}, // 11 follows 0, 92, ff, OR 1,3 ff, OR 2, 5 FF
+  {0x00, 0x1C, 0xEC, 0x8F, 0xA8, 0x8C, 0xAF, 0xCC} //12 follows FF FF FF
   /*
     {0xC0, 0x1C, 0x70, 0x02, 0x80, 0x01, 0x10},
     {0xC0, 0x1B, 0x76, 0x00, 0x92, 0x10
@@ -149,7 +151,7 @@ const byte commands[][6] = {
   */
 };
 //keep track of the length of each command. (The two dimensional array above have fixed width (padded with 0x00))
-const byte listLen = 12;
+const byte listLen = 13;
 byte cmdLen[listLen] = {
   6,
   4 ,
@@ -162,7 +164,8 @@ byte cmdLen[listLen] = {
   4,
   6,
   6,
-  3,/*, 5, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 3 */
+  3,
+  8,/*, 5, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 3 */
 };
 
 //arrays to send to HU when requested
@@ -254,6 +257,7 @@ void loop() {
   bool flag = false;
   bool text = false;
   bool BUSY = PIND & (1 << MELBUS_BUSY);
+  int count = 0;
 
   Connected++;
   //check BUSY line active (active low)
@@ -404,18 +408,16 @@ void loop() {
 
               case 11:
                 // we read 3 different tuple bytes (0x00 92), (01,3) and (02,5), response is always 0x10;
-                int cnt = 0;
                 // int nByte = 0x00;
                 while (!(PIND & (1 << MELBUS_BUSY))) {
-
                   if (byteIsRead) {
                     byteIsRead = false;
-                    cnt++;
-                    if (cnt == 1) {
+                    count++;
+                    if (count == 1) {
                       // nByte = melbus_ReceivedByte;
                     }
                   }
-                  if (cnt == 2) {
+                  if (count == 2) {
                     noInterrupts();
                     byteToSend = 0x10;
                     SendByteToMelbus();
@@ -424,257 +426,269 @@ void loop() {
                   break;
                   Serial.println("->10 ");
                 }
-            
+                break;
 
-            break;
-
-            /*
-              track++;
-              fixTrack();
-              trackInfo[5] = track;
-              nextTrack();
-              break;
-              //3, prev track
-              case 3:
-              track--;
-              fixTrack();
-              trackInfo[5] = track;
-              prevTrack();
-              break;
-              //4, next cd
-              case 4:
-              //wait for next byte to get CD number
-              while (!(PIND & (1 << MELBUS_BUSY))) {
-                if (byteIsRead) {
-                  byteIsRead = false;
-                  switch (melbus_ReceivedByte) {
-                    case 0x81:
-                      cd = 1;
-                      voice(); //internal to BT-module, not BT source
-                      track = 1;
-                      break;
-                    case 0x82:
-                      cd = 2;
-                      volumeUp(); //internal to BT-module, not BT source
-                      hangup();
-                      track = 1;
-                      break;
-                    case 0x83:
-                      cd = 3;
-                      volumeDown();
-                      track = 1;
-                      break;
-                    case 0x84:
-                      cd = 4;
-                      track = 1;
-                      break;
-                    case 0x85:
-                      cd = 5;
-                      track = 1;
-                      break;
-                    case 0x86:
-                      cd = 6;
-                      track = 1;
-                      //here we mark for text-sending
-                      text = 1;
-
-
-                      break;
-                    case 0x41:
-                      cd++;
-                      track = 1;
-                      break;
-                    case 0x01:
-                      cd--;
-                      track = 1;
-                      break;
-                    default:
-                      track = 1;
-                      break;
-                  }
-                }
-              }
-              trackInfo[3] = cd;
-              trackInfo[5] = track;
-              break;
-              //5, not used
-              case 5:
-              break;
-              //6, power up. resp ack (0x00), not verified
-              case 6:
-              byteToSend = 0x00;
-              SendByteToMelbus();
-              trackInfo[1] = startByte;
-              trackInfo[8] = startByte;
-              break;
-              //7, power down. ack (0x00), not verified
-              case 7:
-              byteToSend = 0x00;
-              SendByteToMelbus();
-              trackInfo[1] = stopByte;
-              trackInfo[8] = stopByte;
-              melbusInitReq();
-              break;
-              //8, FFW. ack, not verified
-              case 8:
-              byteToSend = 0x00;
-              SendByteToMelbus();
-              break;
-              //9, FRW. ack, not verified
-              case 9:
-              byteToSend = 0x00;
-              SendByteToMelbus();
-              break;
-              //10 scan mode.
-              //Used as a PLAY button here
-              case 10:
-              byteToSend = 0x00;
-              SendByteToMelbus();
-              play();
-              //trackInfo[0]++; //debug
-              break;
-              //11 random mode.
-              //Used as a PLAY button here
-              case 11:
-              byteToSend = 0x00;
-              SendByteToMelbus();
-              play();
-              break;
-              //12 main init seq. wait for BASE_ID and respond with RESPONSE_ID.
               case 12:
-              //wait for base_id and respond with response_id
-              while (!(PIND & (1 << MELBUS_BUSY))) {
-                if (byteIsRead) {
-                  byteIsRead = false;
-                  //debug get whole message
-                  //byteCounter++;
-                  //melbus_log[byteCounter] = melbus_ReceivedByte;
-                  //end debug
-                  if (melbus_ReceivedByte == BASE_ID) {
-                    byteToSend = RESPONSE_ID;
-                    SendByteToMelbus();
-                    break;
-                  }
+                //  {0x00, 0x1C, 0xEC, 0x8F, 0xA8, 0x8C, 0xAF, 0xCC} //12 follows FF FF FF
+                noInterrupts();
+                for (int x = 0; x < sizeof(case12Threebyte); x++) {
+                  byteToSend = case12Threebyte[x];
+                  SendByteToMelbus();
                 }
-              }
-              break;
-              //13 secondary init req. wait for BASE_ID and respond with RESPONSE_ID.
-              case 13:
-              //wait for base_id and respond response_id
-              //digitalWrite(13, HIGH);
-              while (!(PIND & (1 << MELBUS_BUSY))) {
-                if (byteIsRead) {
-                  byteIsRead = false;
-                  //debug get whole message
-                  //byteCounter++;
-                  //melbus_log[byteCounter] = melbus_ReceivedByte;
-                  //end debug
-                  if (melbus_ReceivedByte == BASE_ID) {
-                    byteToSend = RESPONSE_ID;
-                    SendByteToMelbus();
-                    break;
+                interrupts();
+                break;
+                /*
+                  track++;
+                  fixTrack();
+                  trackInfo[5] = track;
+                  nextTrack();
+                  break;
+                  //3, prev track
+                  case 3:
+                  track--;
+                  fixTrack();
+                  trackInfo[5] = track;
+                  prevTrack();
+                  break;
+                  //4, next cd
+                  case 4:
+                  //wait for next byte to get CD number
+                  while (!(PIND & (1 << MELBUS_BUSY))) {
+                    if (byteIsRead) {
+                      byteIsRead = false;
+                      switch (melbus_ReceivedByte) {
+                        case 0x81:
+                          cd = 1;
+                          voice(); //internal to BT-module, not BT source
+                          track = 1;
+                          break;
+                        case 0x82:
+                          cd = 2;
+                          volumeUp(); //internal to BT-module, not BT source
+                          hangup();
+                          track = 1;
+                          break;
+                        case 0x83:
+                          cd = 3;
+                          volumeDown();
+                          track = 1;
+                          break;
+                        case 0x84:
+                          cd = 4;
+                          track = 1;
+                          break;
+                        case 0x85:
+                          cd = 5;
+                          track = 1;
+                          break;
+                        case 0x86:
+                          cd = 6;
+                          track = 1;
+                          //here we mark for text-sending
+                          text = 1;
+
+
+                          break;
+                        case 0x41:
+                          cd++;
+                          track = 1;
+                          break;
+                        case 0x01:
+                          cd--;
+                          track = 1;
+                          break;
+                        default:
+                          track = 1;
+                          break;
+                      }
+                    }
                   }
-                }
-              }
-              break;
-              //14 master req broadcast. wait for MASTER_ID and respond with MASTER_ID. (not used in this sketch)
-              case 14:
-              while (!(PIND & (1 << MELBUS_BUSY))) {
-                if (byteIsRead) {
-                  byteIsRead = false;
-                  if (melbus_ReceivedByte == MASTER_ID) {
-                    byteToSend = MASTER_ID;
-                    SendByteToMelbus();
-                    //do stuff here to send message to HU, like
-                    masterSend();
-                    break;
+                  trackInfo[3] = cd;
+                  trackInfo[5] = track;
+                  break;
+                  //5, not used
+                  case 5:
+                  break;
+                  //6, power up. resp ack (0x00), not verified
+                  case 6:
+                  byteToSend = 0x00;
+                  SendByteToMelbus();
+                  trackInfo[1] = startByte;
+                  trackInfo[8] = startByte;
+                  break;
+                  //7, power down. ack (0x00), not verified
+                  case 7:
+                  byteToSend = 0x00;
+                  SendByteToMelbus();
+                  trackInfo[1] = stopByte;
+                  trackInfo[8] = stopByte;
+                  melbusInitReq();
+                  break;
+                  //8, FFW. ack, not verified
+                  case 8:
+                  byteToSend = 0x00;
+                  SendByteToMelbus();
+                  break;
+                  //9, FRW. ack, not verified
+                  case 9:
+                  byteToSend = 0x00;
+                  SendByteToMelbus();
+                  break;
+                  //10 scan mode.
+                  //Used as a PLAY button here
+                  case 10:
+                  byteToSend = 0x00;
+                  SendByteToMelbus();
+                  play();
+                  //trackInfo[0]++; //debug
+                  break;
+                  //11 random mode.
+                  //Used as a PLAY button here
+                  case 11:
+                  byteToSend = 0x00;
+                  SendByteToMelbus();
+                  play();
+                  break;
+                  //12 main init seq. wait for BASE_ID and respond with RESPONSE_ID.
+                  case 12:
+                  //wait for base_id and respond with response_id
+                  while (!(PIND & (1 << MELBUS_BUSY))) {
+                    if (byteIsRead) {
+                      byteIsRead = false;
+                      //debug get whole message
+                      //byteCounter++;
+                      //melbus_log[byteCounter] = melbus_ReceivedByte;
+                      //end debug
+                      if (melbus_ReceivedByte == BASE_ID) {
+                        byteToSend = RESPONSE_ID;
+                        SendByteToMelbus();
+                        break;
+                      }
+                    }
                   }
-                }
-              }
-              break;
-            */
-            //              //15
-            //              case 15:
-            //                byteToSend = 0x00;
-            //                SendByteToMelbus();
-            //                break;
-            //              //16
-            //              case 16:
-            //                byteToSend = 0x00;
-            //                SendByteToMelbus();
-            //                break;
-            //              //17
-            //              case 17:
-            //                byteToSend = 0x00;
-            //                SendByteToMelbus();
-            //                break;
-          }
-          break;    //bail for loop. (Not meaningful to search more commands if one is already found)
-        } //end if command found
-      } //end if lastbyte matches
-    }  //end for cmd loop
-    byteCounter++;
-  }  //end if byteisread
-  //Update status of BUSY line, so we don't end up in an infinite while-loop.
-  BUSY = PIND & (1 << MELBUS_BUSY);
-  if (BUSY) {
-    flag = true; //used to execute some code only once between transmissions
+                  break;
+                  //13 secondary init req. wait for BASE_ID and respond with RESPONSE_ID.
+                  case 13:
+                  //wait for base_id and respond response_id
+                  //digitalWrite(13, HIGH);
+                  while (!(PIND & (1 << MELBUS_BUSY))) {
+                    if (byteIsRead) {
+                      byteIsRead = false;
+                      //debug get whole message
+                      //byteCounter++;
+                      //melbus_log[byteCounter] = melbus_ReceivedByte;
+                      //end debug
+                      if (melbus_ReceivedByte == BASE_ID) {
+                        byteToSend = RESPONSE_ID;
+                        SendByteToMelbus();
+                        break;
+                      }
+                    }
+                  }
+                  break;
+                  //14 master req broadcast. wait for MASTER_ID and respond with MASTER_ID. (not used in this sketch)
+                  case 14:
+                  while (!(PIND & (1 << MELBUS_BUSY))) {
+                    if (byteIsRead) {
+                      byteIsRead = false;
+                      if (melbus_ReceivedByte == MASTER_ID) {
+                        byteToSend = MASTER_ID;
+                        SendByteToMelbus();
+                        //do stuff here to send message to HU, like
+                        masterSend();
+                        break;
+                      }
+                    }
+                  }
+                  break;
+                */
+                //              //15
+                //              case 15:
+                //                byteToSend = 0x00;
+                //                SendByteToMelbus();
+                //                break;
+                //              //16
+                //              case 16:
+                //                byteToSend = 0x00;
+                //                SendByteToMelbus();
+                //                break;
+                //              //17
+                //              case 17:
+                //                byteToSend = 0x00;
+                //                SendByteToMelbus();
+                //                break;
+            }
+            break;    //bail for loop. (Not meaningful to search more commands if one is already found)
+          } //end if command found
+        } //end if lastbyte matches
+      }  //end for cmd loop
+      byteCounter++;
+    }  //end if byteisread
+    //Update status of BUSY line, so we don't end up in an infinite while-loop.
+    BUSY = PIND & (1 << MELBUS_BUSY);
+    if (BUSY) {
+      flag = true; //used to execute some code only once between transmissions
+    }
   }
-}
 
-//Do other stuff here if you want. MELBUS lines are free now. BUSY = IDLE (HIGH)
-//Don't take too much time though, since BUSY might go active anytime, and then we'd better be ready to receive.
-//Printing transmission log (incoming, before responses)
-if (flag) {
-  for (byte b = 0; b < byteCounter; b++) {
-    Serial.print(melbus_log[b], HEX);
-    Serial.print(" ");
+  //Do other stuff here if you want. MELBUS lines are free now. BUSY = IDLE (HIGH)
+  //Don't take too much time though, since BUSY might go active anytime, and then we'd better be ready to receive.
+  //Printing transmission log (incoming, before responses)
+  if (flag) {
+    for (byte b = 0; b < byteCounter; b++) {
+      Serial.print(melbus_log[b], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
   }
-  Serial.println();
-}
 
-//Reset stuff
-byteCounter = 0;
-melbus_Bitposition = 7;
-for (byte i = 0; i < listLen; i++) {
-  matching[i] = 0;
-}
-if (Connected > 2000000) {
-  melbusInitReq();
-  Connected = 0;
-}
+  //Reset stuff
+  byteCounter = 0;
+  melbus_Bitposition = 7;
+  for (byte i = 0; i < listLen; i++) {
+    matching[i] = 0;
+  }
+  if (Connected > 2000000) {
+    melbusInitReq();
+    //Connected = 0;
+  }
 
-//Incoming serial data is supposed to look like this:
-//index, databyte: "3, 5"
-//No error checking here since we're just hacking
-//  if (Serial.available() > 0) {
-//    int index = Serial.parseInt();
-//    trackInfo[index] = (byte) Serial.parseInt();
-//    Serial.readStringUntil('\n');
-//    for (byte b = 0; b < 9; b++) {
-//      Serial.print(trackInfo[b], HEX);
-//      Serial.print("-");
-//    }
-//    Serial.println();
-//  }
+  if (Connected > 5000000) {
+    Connected = 0;
+    text = true;
+  }
 
-// I haven't seen any advantages from sending messages to HU.
-//Therefore this section is disabled.
-//  if (flag) {
-//    if(some timed interval etc)
-//    reqMaster();
-//  }
+  //Incoming serial data is supposed to look like this:
+  //index, databyte: "3, 5"
+  //No error checking here since we're just hacking
+  //  if (Serial.available() > 0) {
+  //    int index = Serial.parseInt();
+  //    trackInfo[index] = (byte) Serial.parseInt();
+  //    Serial.readStringUntil('\n');
+  //    for (byte b = 0; b < 9; b++) {
+  //      Serial.print(trackInfo[b], HEX);
+  //      Serial.print("-");
+  //    }
+  //    Serial.println();
+  //  }
 
-if (text || Serial.available() > 0) {
-  Serial.read();
-  Serial.println("\ns f");
-  //next run, we want to send text!
-  text = true;
-  reqMaster();
+  // I haven't seen any advantages from sending messages to HU.
+  //Therefore this section is disabled.
+  //  if (flag) {
+  //    if(some timed interval etc)
+  //    reqMaster();
+  //  }
 
-}
+  if (text || Serial.available() > 0) {
+    Serial.read();
+    Serial.println("\ns f");
+    //next run, we want to send text!
+    text = true;
+    reqMaster();
 
-flag = false; //don't print during next loop. Wait for new message to arrive first.
+  }
+
+  flag = false; //don't print during next loop. Wait for new message to arrive first.
 }
 
 //Notify HU that we want to trigger the first initiate procedure to add a new device (CD-CHGR) by pulling BUSY line low for 1s
