@@ -36,7 +36,14 @@ I removed the bluetooth melbus device and connected the logic-analyser to the 3 
 
 
 # Timing
-see ![](timing-single-byte.png) and ![](timeing-between-two-bytes-as-master) for some closeups on timing
+see 
+![](timing-single-byte.png) 
+
+and
+
+![](timeing-between-two-bytes-as-master.png) 
+
+for some closeups on timing speeds when acting as master
 
 
 # details:
