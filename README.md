@@ -27,8 +27,19 @@ in logic, add the **SPI-decoder** with the following settings:
 * *Data is valid on trailing edge*
 * *Enable line is active low*
 
+# Capture setup
 
-details:
+I've connected the melbus device in the back of the car, using the 13pin connector at the back of the RTI dvd-player, and extracting power via the Tuner on the RTI as well.
+In the front of the car, I already had a melbus splitter, for my old bluetooth setup.
+
+I removed the bluetooth melbus device and connected the logic-analyser to the 3 data-pins and ground. h
+
+
+# Timing
+see !(timing-single-byte.png) and !(timeing-between-two-bytes-as-master) for some closeups on timing
+
+
+# details:
 
 the capture file **test-aa-bb-cc-track.logicdata** contains the melbus-traffic from playing a file, with **aaaaaaaaaa**'s and **bbbbbbbbb**'s in the meta-data (to ease disovery)
 
